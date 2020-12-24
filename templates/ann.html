@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>SignalAnnotation</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css" integrity="sha256-BJ/G+e+y7bQdrYkS2RBTyNfBHpA9IuGaPmf9htub5MQ=" crossorigin="anonymous" />
+    <style type="text/css">
+        /* context menu */
+        .context-menu {
+          /*display: none;*/
+          position: absolute;
+          z-index: 10;
+          padding: 12px 0;
+          width: 240px;
+          background-color: #fff;
+          border: solid 1px #dfdfdf;
+          box-shadow: 1px 1px 2px #cfcfcf;
+        }
+
+        .context-menu__active {
+          display: block;
+        }
+
+        .context-menu__items {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+        }
+
+        .context-menu__item {
+          display: block;
+          margin-bottom: 4px;
+        }
+
+        .context-menu__item:last-child {
+          margin-bottom: 0;
+        }
+
+        .context-menu__link {
+          display: block;
+          padding: 4px 12px;
+          color: #0066aa;
+          text-decoration: none;
+        }
+
+        .context-menu__link:hover {
+          color: #fff;
+          background-color: #0066aa;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">使用说明</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <ul>
+              <li><b>导入数据</b> ： 点击“导入”，即可显示一条心电数据的300秒（每一页共300秒，分成5行进行显示），点击“下一个”即可显示该条心电数据的下一个的300秒。</li>
+              <li><b>标注数据</b> ： 在位置A单击，即可生成一条垂直线作为起始位置，将鼠标移动到位置B再单击一下作为终止位置，将鼠标移动到AB之间右击（可以选择AF、AVB、VPB、Noise、VT、Other类标注以及“删除”，其中“删除”用于将错误标注删除），即可进行该段心电数据的标注。</li>
+            
+              <li><b>导出注释</b> ： 标注完一整条ECG数据后，点击“导出”，即可下载注释文档。</li>
+              <li><b>ctrl+鼠标旋钮</b> ： 缩放心电图。</li>
+              <li><b>向左/向右剪头按钮</b> ： 心电图向前/向后移动。</li>
+              <li><b>标注</b> ： 显示/不显示选中区域（下一次移动后生效）。</li>
+              <li><b>网格</b> ：显示/不显示网格。</li>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <!-- <a target="_blank" type="button" class="btn btn-primary" href="https://github.com/Dubrzr/SignalAnnotation/issues/new">I have one more question</a> -->
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+<div class="container">
+  <div class="row">
+    <div class="col-sm">
+    </div>
+    <div class="col-sm">
+      <div id="canvass"></div>
+    </div>
+    <div class="col-sm">
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-sm">
+      <div class="form-group form-check">
+          <input type="checkbox" class="form-check-input" id="annotations" checked>
+          <label class="form-check-label" for="annotations">标记</label>
+          <br>
+          <input type="checkbox" class="form-check-input" id="grid">
+          <label class="form-check-label" for="grid">网格</label>
+          <br>
+          <input type="checkbox" class="form-check-input" id="magnetism"> 
+          <label class="form-check-label" for="magnetism">无</label>
+      </div>
+    </div>
+    <div class="col-sm">
+        <button id="moveLeft" type="button" class="btn btn-outline-secondary" title="Move backward"><span class="oi oi-arrow-thick-left"></span></button>
+        <button id="moveRight" type="button" class="btn btn-outline-secondary" title="Move forward"><span class="oi oi-arrow-thick-right"></span></button>
+    </div>
+    <div class="col-sm">
+      <button type="button" class="btn btn-success" id="save">导出</button>
+      <button type="button" class="btn btn-info" data-toggle="modal" data-target="#helpModal">帮助</button>
+
+      <div class="tac"  style="float:left; margin-right:5px ;">
+        <input type="file" id="browsefile"  style="display: none;">
+        <input  type="button" class="btn btn-primary" target="_blank" id="filebutton" value="导入" onclick="browsefile.click()">
+      </div>
+      <button type="button" class="btn btn-success" id="prior">前一个</button>
+
+      <button type="button" class="btn btn-success" id="next">下一个</button>
+      
+     
+    </div>
+  </div>
+</div>
+
+
+    <nav id="context-menu" class="context-menu" style="display: none;">
+        <ul class="context-menu__items">
+            <li class="context-menu__item">
+                <!-- <a href="#" class="context-menu__link" data-action="Edit"><i class="fa fa-edit"></i> Edit</a> -->
+                <a href="#" class="context-menu__link" data-action="AF"><i class="fa fa-edit"></i> AF</a>
+                <a href="#" class="context-menu__link" data-action="AVB"><i class="fa fa-edit"></i> AVB</a>
+                <a href="#" class="context-menu__link" data-action="VPB"><i class="fa fa-edit"></i> VPB</a>
+                <a href="#" class="context-menu__link" data-action="Noise"><i class="fa fa-edit"></i> Noise</a>
+                <a href="#" class="context-menu__link" data-action="VT"><i class="fa fa-edit"></i> VT</a>
+                <a href="#" class="context-menu__link" data-action="Other"><i class="fa fa-edit"></i> Other</a>
+            </li>
+            <li class="context-menu__item">
+                <a href="#" class="context-menu__link" data-action="Delete"><i class="fa fa-times"></i>删除</a>
+            </li>
+        </ul>
+    </nav>
+    <!-- <input type="button" value="导入" id="fileImport" onclick="clickLoad" style="background: white; height: 20px; width: 40px; font-size: 10px;">
+    <input type="file" id="files" ref="refFile" style="display: none">          -->
+    
+
+    <!-- Bootstrap -->
+    <!-- <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script> -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="{% static 'plugins/bootstrap-3.3.7-dist/js/bootstrap.min.js' %}" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+    <!-- Signal annotation -->
+    <script src="{% static 'js/concrete.min.js' %}"></script>
+    <script src="{% static 'js/annotator.js' %}"></script>
+    <script type="text/javascript">
+        const sig_colors = {
+            "0": "#FF0000",
+            "1": "#FAA804",
+            "2": "#00FF00",
+            "3": "#FFFF00",
+            "4": "#82CEFC",
+        
+        };
+
+        let historyresult=null;
+        let result;
+
+        let sig_name;
+        let values;
+        const canvass = document.getElementById("canvass");
+
+        const fil = document.getElementById("browsefile");
+
+        const next = document.getElementById("next");
+        const prior = document.getElementById("prior");
+
+        var all_data = [];
+
+        fil.addEventListener('change', (e) => { 
+            const selectedFile = fil.files[0];
+            var reader = new FileReader(); 
+            reader.readAsText(selectedFile);
+            var data_dict = {};
+            var item = [];
+            var data = [];
+            var serial = 0;
+            
+            reader.onload = (event) => { 
+                result=event.target.result;
+                let results=[];
+                results=result.split(" ");
+                for(let index in results){
+                    item.push(parseInt(results[index]));
+                    if(index%7680 === 7679){
+                        data.push(JSON.parse(JSON.stringify(item)));
+                        serial=serial+1;
+                        if(serial===5){
+                            all_data.push(JSON.parse(JSON.stringify(data)));
+                            serial=0;
+                            data.length=0
+                        }
+                        item.length=0
+                    }
+                }
+                all_data.push(JSON.parse(JSON.stringify(data)));
+                
+                sig_name=[0,1,2,3,4];
+                values=all_data[0]
+            }
+        });
+        var i=0;
+
+        prior.addEventListener('click',(e)=>{
+            if(i===0){
+                alert("当前为第一组数据") 
+            }else{
+                i=i-1;
+                sig_name.length=0;
+                for(let t=0;t<all_data[i].length;t++){
+                    sig_name[t]=t
+                }
+                values=all_data[i];
+                annotators=[]
+
+            }
+        });
+        
+        next.addEventListener('click',(e)=>{
+           
+            i=i+1;
+            if(i>all_data.length-1){
+                alert("请导入下一组数据");
+                return;
+            }
+            sig_name.length=0;
+            for(let t=0;t<all_data[i].length;t++){
+                sig_name[t]=t
+            }
+            values=all_data[i];
+            annotators=[]
+            
+
+        });
+
+       
+        // let request = new XMLHttpRequest();
+        // request.open('GET', 'test_data.json', false);  // `false` makes the request synchronous
+        // request.send(null);
+
+        // let sig_name = null;
+        // let values = null;
+        // if (request.status === 200) {
+        //     const data = JSON.parse(request.responseText);
+        //     sig_name = data.sig_name;
+        //     values = data.data;
+        // }
+        // const data=json
+        // sig_name=data.sig_name
+        // values=data.data
+
+        // console.assert(sig_name.length == values.length);
+
+
+        const contextMenuClassName = "context-menu";
+        const contextMenuItemClassName = "context-menu__item";
+        const contextMenuLinkClassName = "context-menu__link";
+        const contextMenuActive = "context-menu__active";
+
+        const taskItemClassName = "task";
+        let taskItemInContext;
+
+        let clickCoords;
+        let clickCoordsX;
+        let clickCoordsY;
+
+        const menu = document.querySelector("#context-menu");
+        const menuItems = menu.querySelectorAll(".context-menu__item");
+        let menuState = 0;
+        let menuWidth;
+        let menuHeight;
+        let menuPosition;
+        let menuPositionX;
+        let menuPositionY;
+
+        let windowWidth;
+        let windowHeight;
+
+        let currentAnnotation;
+        let currentAnnotator;
+
+        let annotators = [];
+
+        // Function to check if we clicked inside an element with a particular class name.
+        function clickInsideElement(event, className) {
+            let el = event.srcElement || event.target;
+            if (el.classList.contains(className)) {
+                return el;
+            } else {
+                while (el = el.parentNode) {
+                    if (el.classList && el.classList.contains(className)) {
+                        return el;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function getPosition(event) {
+            let posx = 0;
+            let posy = 0;
+
+            if (event.pageX || event.pageY) {
+                posx = event.pageX;
+                posy = event.pageY;
+            } else if (event.clientX || event.clientY) {
+                posx = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+                posy = event.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+            }
+            return {
+                x: posx,
+                y: posy
+            }
+        }
+
+        function positionMenu(event) {
+            clickCoords = getPosition(event);
+            clickCoordsX = clickCoords.x;
+            clickCoordsY = clickCoords.y;
+
+            menuWidth = menu.offsetWidth + 4;
+            menuHeight = menu.offsetHeight + 4;
+
+            windowWidth = window.innerWidth;
+            windowHeight = window.innerHeight;
+
+            if ( (windowWidth - clickCoordsX) < menuWidth ) {
+                menu.style.left = windowWidth - menuWidth + "px";
+            } else {
+                menu.style.left = clickCoordsX + "px";
+            }
+
+            if ( (windowHeight - clickCoordsY) < menuHeight ) {
+                menu.style.top = windowHeight - menuHeight + "px";
+            } else {
+                menu.style.top = clickCoordsY + "px";
+            }
+        }
+        
+        function toggleMenuOn() {
+            if (menuState !== 1) {
+                menuState = 1;
+                menu.classList.add(contextMenuActive);
+
+                for (let idx in annotators) {
+                    const ann = annotators[idx];
+                    ann.disable_annotations();
+                }
+            }
+        }
+
+        function toggleMenuOff() {
+            if (menuState !== 0) {
+                menuState = 0;
+                menu.classList.remove(contextMenuActive);
+
+                for (let idx in annotators) {
+                    const ann = annotators[idx];
+                    ann.enable_annotations();
+                }
+            }
+        }
+
+        function annotationLeftClickCallback(idx) {
+            function fun(event, annotation) {
+
+            }
+            return fun;
+        }
+        
+
+        function annotationRightClickCallback(idx) {
+            function fun(event, annotation) {
+                console.log("annotationRightClickCallback");
+                taskItemInContext = clickInsideElement(event, taskItemClassName);
+                event.preventDefault();
+                document.querySelector('.context-menu').style.display='block';
+                positionMenu(event);
+                currentAnnotation = annotation;
+                currentAnnotator = idx;
+            }
+            return fun;
+        }
+        
+
+        document.addEventListener("click", function(event) {
+        
+            var clickeElIsLink = clickInsideElement(event, contextMenuLinkClassName);
+            if (clickeElIsLink) {
+                document.querySelector('.context-menu').style.display='none';
+                
+                event.preventDefault();
+                const action = clickeElIsLink.getAttribute("data-action");
+                if (action === "AF") {
+                    currentAnnotation.type='AF'
+                }
+                if (action === "AVB") {
+                    currentAnnotation.type='AVB'
+                }
+                if (action === "VPB") {
+                    currentAnnotation.type='VPB'
+                }
+                if (action === "Noise") {
+                    currentAnnotation.type='Noise'
+                }
+                if (action === "VT") {
+                    currentAnnotation.type='VT'
+                }
+                if (action === "Other") {
+                    currentAnnotation.type='Other'
+                }
+                else if (action === "Delete") {
+                    annotators[currentAnnotator].remove_annotation(currentAnnotation);
+                }
+            } else {
+                var button = event.which || event.button;
+                if (button === 1) {
+                    toggleMenuOff();
+                }
+            }
+            
+        });
+        setInterval(function() {
+            if(historyresult != values){
+                if(canvass.children.length != 0){
+                    var childs = canvass.childNodes;
+                    for(var i = childs.length - 1; i >= 0; i--) {
+                        canvass.removeChild(childs[i]);
+                    }
+
+                }
+                
+
+                for (let i = 0; i < sig_name.length; i++) {
+                    let subDiv = canvass.appendChild(document.createElement('div'));
+                    const ann = new Annotator(
+                        subDiv,
+                        1100,
+                        110,
+                        sig_name[i],
+                        values[i], 
+                        125, 
+                        0, 
+                        "#000", 
+                        sig_colors[sig_name[i]], 
+                        document.querySelector('#magnetism:checked') !== null,
+                        1000,
+                        125/2, 125/8, 100, 10);
+                    ann.setAnnotationLeftClickCallback(annotationLeftClickCallback(i));
+                    ann.setAnnotationRightClickCallback(annotationRightClickCallback(i));
+                    annotators.push(ann);
+                }
+                
+                historyresult=values
+            }
+        },1000);
+       
+
+        
+
+        document.getElementById("save").addEventListener("click", () => {
+            const annlist=[];
+            for (let idx in annotators) {
+                annlist.push(annotators[idx].annotations)
+            }
+            annlistjson=JSON.stringify(annlist);
+            
+            var blob = new Blob([annlistjson], { type: "application/vnd.ms-excel" });
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "demo.xls";
+            a.style.display='none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a)
+            
+        });
+        
+       
+
+        function smooth(x) {
+            // Returns smoothed values between zero and one
+            if (x <= -1)
+                return 0;
+            if (x >= 1)
+                return 1;
+            return 2/(1+Math.exp(-5*x))/2;
+        }
+        function sleep(ms) {
+          return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        let moving = false;
+        async function moveToSmooth(diff_offset, animation_length_ms) {
+            moving = true;
+            if (annotators.length === 0)
+                return;
+
+            var start_offset = annotators[0].current_offset;
+            let start_offsets = [];
+            for (let idx in annotators) {
+                start_offsets.push(annotators[idx].current_offset);
+            }
+
+            // let diff = offset - start_offset;
+
+            // Smoothed
+            const start = (new Date()).getTime(); // -1
+            const end = start + animation_length_ms; // +1
+
+            let now = (new Date()).getTime();
+            while (now < end) {
+                const elapsed = now - start;
+                const expected_offset = Math.floor(smooth(2*(elapsed/animation_length_ms)-1) * diff_offset);
+                //console.log(elapsed, expected_offset, start_offset + expected_offset);
+                for (let idx in annotators) {
+                    annotators[idx].moveTo(start_offsets[idx] + expected_offset);
+                }
+                now = (new Date()).getTime();
+                await sleep(1);
+            }
+
+            for (let idx in annotators) {
+                annotators[idx].moveTo(start_offsets[idx] + diff_offset);
+            }
+            moving = false;
+        }
+
+        document.getElementById("moveLeft").addEventListener("click", () => {
+            if (moving)
+                return;
+            moveToSmooth(-125, 500);
+        });
+
+        document.getElementById("moveRight").addEventListener("click", () => {
+            if (moving)
+                return;
+            moveToSmooth(125, 500);
+        });
+
+        document.getElementById("magnetism").addEventListener("change", (event) => {
+            for (let idx in annotators) {
+                const ann = annotators[idx];
+                if (event.target.checked) {
+                    ann.enable_magnetism();
+                    console.log("Enabled magnetism :D");
+                } else {
+                    ann.disable_magnetism();
+                    console.log("Disabled magnetism :o");
+                }
+            }
+        }); 
+        document.getElementById("grid").addEventListener("change", (event) => {
+            for (let idx in annotators) {
+                const ann = annotators[idx];
+                if (event.target.checked) {
+                    ann.enable_grids();
+                } else {
+                    ann.disable_grids();
+                }
+            }
+        }); 
+        document.getElementById("annotations").addEventListener("change", (event) => {
+            for (let idx in annotators) {
+                const ann = annotators[idx];
+                if (event.target.checked) {
+                    ann.enable_annotations();
+                } else {
+                    ann.disable_annotations();
+                }
+            }
+        }); 
+        document.addEventListener('keydown', function(event) {
+            if (moving)
+                return;
+            if(event.keyCode === 37) {
+                moveToSmooth(-125, 220);                
+            }
+            else if(event.keyCode === 39) {
+                moveToSmooth(125, 220);
+            }
+        });
+
+        document.addEventListener("wheel", function(event){
+            if(event.ctrlKey){
+                event.preventDefault();
+                
+
+                for (let idx in annotators) {
+                    const ann = annotators[idx];
+                    ann.zoomToEvent(event);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

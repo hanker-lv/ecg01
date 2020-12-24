@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>vue test</title>
+    <script src={% static "/js/jquery-3.2.1/jquery-3.2.1.min.js" %}></script>
+    <script src={% static "/js/vue.js" %}></script>
+    <script src={% static "/js/echarts.js" %}></script>
+</head>
+<body>
+{% verbatim %}
+<div id="app">
+    {{ message }}
+    <p><input type="text" v-model="message" title="请输入"></p>
+</div>
+{% endverbatim %}
+<script>
+
+    var Vue=new Vue({
+        el:"#app",
+        data:{
+            message:"hello world",
+        }
+    })
+
+</script>
+</body>
+</html>

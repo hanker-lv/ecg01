@@ -1,0 +1,184 @@
+
+{% extends 'login/base.html' %}
+{% load static %}
+{% block title %}
+    <title>主页</title>
+{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/index/dash.css' %}">
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                        aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">ECG心率分析系统</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="#">Dashboard</a></li>
+                    <li><a href="#">Settings</a></li>
+                    <li><a href="#">Profile</a></li>
+                    <li><a href="#">Help</a></li>
+                </ul>
+                <form class="navbar-form navbar-right">
+                    <input type="text" class="form-control" placeholder="Search...">
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-3 col-md-2 sidebar">
+                <ul class="nav nav-sidebar">
+                    <li class="active"><a href="/index/">所有用户 <span class="sr-only">(current)</span></a></li>
+                    <li><a href="#">用户信息</a></li>
+                    <li><a href="#">模型分析</a></li>
+                    <li><a href="#">Export</a></li>
+                </ul>
+            </div>
+
+            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                <h2 class="sub-header">用户</h2>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>用户</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for i in all_person %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ i.name }}</td>
+                                <td><a href="/person_index/{{ i.id }}/">查看</a>
+                                    <a href="/person_edit/{{ i.id }}/">修改</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+
+                    </table>
+                    <div class="float-left">
+                        <a href="/person_add/">添加用户</a><br>
+                    </div>
+                <div class="pull-left">
+                    <a href="/ann/">标记</a>
+                </div>
+                    {#                <p>#}
+                    {#                    <a href="/logout/">注销</a>#}
+                    {#                </p>#}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+{#<!DOCTYPE html>#}
+{#<html lang="zh-CN">#}
+{#<head>#}
+{#    <meta charset="UTF-8">#}
+{#    <meta name="viewport" content="width=device-width, initial-scale=1">#}
+{#    <title>主页</title>#}
+{##}
+{#    <link rel="stylesheet" href="/static/plugins/bootstrap-3.3.7-dist/css/bootstrap.min.css">#}
+{#    <link rel="stylesheet" href="/static/css/index/dash.css">#}
+{#    <link rel="stylesheet" href="/static/css/index/cover.css">#}
+{##}
+{#</head>#}
+{##}
+{#<body mpa-version="7.15.6" mpa-extension-id="ibefaeehajgcpooopoegkifhgecigeeg">#}
+{##}
+{#<nav class="navbar navbar-inverse navbar-fixed-top">#}
+{#    <div class="container-fluid">#}
+{#        <div class="navbar-header">#}
+{#            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"#}
+{#                    aria-expanded="false" aria-controls="navbar">#}
+{#                <span class="sr-only">Toggle navigation</span>#}
+{#                <span class="icon-bar"></span>#}
+{#                <span class="icon-bar"></span>#}
+{#                <span class="icon-bar"></span>#}
+{#            </button>#}
+{#            <a class="navbar-brand" href="#">ECG心率分析系统</a>#}
+{#        </div>#}
+{#        <div id="navbar" class="navbar-collapse collapse">#}
+{#            <ul class="nav navbar-nav navbar-right">#}
+{#                <li><a href="#">Dashboard</a></li>#}
+{#                <li><a href="#">Settings</a></li>#}
+{#                <li><a href="#">Profile</a></li>#}
+{#                <li><a href="#">Help</a></li>#}
+{#            </ul>#}
+{#            <form class="navbar-form navbar-right">#}
+{#                <input type="text" class="form-control" placeholder="Search...">#}
+{#            </form>#}
+{#        </div>#}
+{#    </div>#}
+{#</nav>#}
+{##}
+{#<div class="container-fluid">#}
+{#    <div class="row">#}
+{#        <div class="col-sm-3 col-md-2 sidebar">#}
+{#            <ul class="nav nav-sidebar">#}
+{#                <li class="active"><a href="/index/">查看用户 <span class="sr-only">(current)</span></a></li>#}
+{#                <li><a href="#">Reports</a></li>#}
+{#                <li><a href="#">Analytics</a></li>#}
+{#                <li><a href="#">Export</a></li>#}
+{#            </ul>#}
+{#        </div>#}
+{##}
+{#        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">#}
+{#            <h2>{{ user_name }}欢迎访问</h2>#}
+{#            <h2 class="sub-header">用户</h2>#}
+{#            <div class="table-responsive">#}
+{#                <table class="table table-striped">#}
+{#                    <thead>#}
+{#                    <tr>#}
+{#                        <th>序号</th>#}
+{#                        <th>用户</th>#}
+{#                        <th>操作</th>#}
+{#                    </tr>#}
+{#                    </thead>#}
+{#                    <tbody>#}
+{#                    {% for i in all_person %}#}
+{#                        <tr>#}
+{#                            <td>{{ forloop.counter }}</td>#}
+{#                            <td>{{ i.name }}</td>#}
+{#                            <td><a href="/person_index/{{ i.id }}/">查看</a>#}
+{#                                <a href="/person_edit/{{ i.id }}/">修改</a>#}
+{#                            </td>#}
+{#                        </tr>#}
+{#                    {% endfor %}#}
+{#                    </tbody>#}
+{#                    <div>#}
+{#                        <a href="/person_add/">添加用户</a><br>#}
+{#                    </div>#}
+{#                </table>#}
+{#                <p>#}
+{#                    <a href="/logout/">注销</a>#}
+{#                </p>#}
+{#            </div>#}
+{#        </div>#}
+{#    </div>#}
+{#</div>#}
+{##}
+{#<!-- Bootstrap core JavaScript#}
+{#================================================== -->#}
+{#<!-- Placed at the end of the document so the pages load faster -->#}
+{#<script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>#}
+{#<script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>#}
+{##}
+
+{##}
+{#</body>#}

@@ -1,0 +1,137 @@
+{% extends 'login/base.html' %}
+{% load static %}
+{% block title %}
+    模型
+{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/index/dash.css' %}">
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                        aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">ECG心率分析系统</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="#">Dashboard</a></li>
+                    <li><a href="#">Settings</a></li>
+                    <li><a href="#">Profile</a></li>
+                    <li><a href="#">Help</a></li>
+                </ul>
+                <form class="navbar-form navbar-right">
+                    <input type="text" class="form-control" placeholder="Search...">
+                </form>
+            </div>
+        </div>
+    </nav>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-3 col-md-2 sidebar">
+                <ul class="nav nav-sidebar">
+                    <li><a href="">所有用户 </a></li>
+                    <li><a href="">用户信息</a></li>
+                    <li class="active"><a href="">模型分析<span class="sr-only">(current)</span></a></li>
+                    <li><a href="#">Export</a></li>
+                </ul>
+            </div>
+            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>记录的时间</th>
+                            <th>记录持续时长</th>
+                            <th>心率预测分类</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        <tr>
+                            <td>{{ ecg.record_begin_time }}</td>
+                            <td>{{ ecg.ecg_time }}</td>
+                            <td>{{ clss }}</td>
+                        </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+                <!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+                <div id="main" style="width:100%;height:600px;"></div>
+                <button type="button" class="btn btn-success" id="prior">上一个</button>
+                <button type="button" class="btn btn-success" id="next">下一个</button>
+                <script>
+                    let data_ = [];
+                    let data = [];
+                    let sample_hz = Number({{ hz }});
+                    let sample_point = sample_hz * 30;
+                    {#console.log('sample_point',sample_point);#}
+                    let classification = [];
+                    let series_data1 = [];
+                    let series_data2 = [];
+                    let series_data3 = [];
+
+                    {% for cl in cls_num %}
+                        classification.push(Number({{ cl }}));
+                    {% endfor %}
+                    {#console.log(classification);#}
+
+                    {% for d in data %}
+                        var data_i = [];
+                        {% for da in d.0 %}
+                            data_i.push({{ da }});
+                        {% endfor %}
+                        data_ = data_.concat(data_i);  //一维数组
+                        {#console.log(data_i);#}
+                    {% endfor %}
+                    {#console.log(data_.length,data_);#}
+                    // 将一维数组转换成sample_point*n的二维数组
+                    let n = classification.length;
+                    for (let i = 0; i < n; i++) {
+                        data[i] = [];
+                        for (let j = 0; j < sample_point; j++) {
+                            if (data_.length === 0) {
+                                data[i][j] = 0;
+                            } else {
+                                data[i][j] = data_.shift();
+                            }
+                        }
+                    }
+                    {#console.log(data);#}
+                    var app = new Vue({
+                        data() {
+                            return {ecg: data}
+                        },
+                        method: {
+                            drawLine() {
+                                // 基于准备好的dom，初始化echarts实例
+                                let myChart = this.$echarts.init(document.getElementById('main'))
+                            },
+                            next_operation: function () {
+
+                            },
+                            prior_operation: function () {
+
+                            },
+                            next_data: function () {
+
+                            },
+                            prior_data: function () {
+
+                            },
+                        },
+                    });
+                </script>
+            </div>
+        </div>
+    </div>
+{% endblock %}

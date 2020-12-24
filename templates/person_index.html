@@ -1,0 +1,263 @@
+{% extends 'login/base.html' %}
+{% load static %}
+{% block title %}
+    <title>主页</title>
+{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/index/dash.css' %}">
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                        aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">ECG心率分析系统</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="#">Dashboard</a></li>
+                    <li><a href="#">Settings</a></li>
+                    <li><a href="#">Profile</a></li>
+                    <li><a href="#">Help</a></li>
+                </ul>
+                <form class="navbar-form navbar-right">
+                    <input type="text" class="form-control" placeholder="Search...">
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-3 col-md-2 sidebar">
+                <ul class="nav nav-sidebar">
+                    <li><a href="#">所有用户 </a></li>
+                    <li class="active"><a href="#">用户信息<span class="sr-only">(current)</span></a></li>
+                    <li><a href="#">模型分析</a></li>
+                    <li><a href="#">Export</a></li>
+                </ul>
+            </div>
+            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+
+                <h2 class="sub-header">{{ person.name }}的记录</h2>
+
+                <h2 class="sub-header"><span>{{ error }}</span></h2>
+
+                <div>
+                    <a href="/upload/{{ person.id }}/">上传ECG</a><br>
+                </div>
+                <h3 class="sub-header">ECG</h3>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>记录时间</th>
+                            <th>记录持续时长</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        {% for ecg_i in ecg %}
+                            <tbody>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ ecg_i.record_begin_time }}</td>
+                            <td>{{ ecg_i.ecg_time }}</td>
+                            <td><a href="/ecg_model/{{ ecg_i.person_id }}/{{ ecg_i.id }}/">开始分析</a>
+                                <a href="">删除记录</a></td>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+{##}
+{#                <div>#}
+{#                    <a href="/ecg_model/{{ person.id }}/{{ '' }}/">分析全部ECG记录</a><br>#}
+{#                </div>#}
+
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+
+{#<!DOCTYPE html>#}
+{#<html lang="en">#}
+{##}
+{#<head>#}
+{#    <meta charset="UTF-8">#}
+{#    <meta name="viewport" content="width=device-width, initial-scale=1">#}
+{#    <title>用户主页</title>#}
+{##}
+{#    <link rel="stylesheet" href="/static/plugins/bootstrap-3.3.7-dist/css/bootstrap.min.css">#}
+{#    <link rel="stylesheet" href="/static/css/index/dash.css">#}
+{#</head>#}
+{##}
+{#<body>#}
+{##}
+{#<nav class="navbar navbar-inverse navbar-fixed-top">#}
+{#    <div class="container-fluid">#}
+{#        <div class="navbar-header">#}
+{#            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"#}
+{#                    aria-expanded="false" aria-controls="navbar">#}
+{#                <span class="sr-only">Toggle navigation</span>#}
+{#                <span class="icon-bar"></span>#}
+{#                <span class="icon-bar"></span>#}
+{#                <span class="icon-bar"></span>#}
+{#            </button>#}
+{#            <a class="navbar-brand" href="#">ECG心率分析系统</a>#}
+{#        </div>#}
+{#        <div id="navbar" class="navbar-collapse collapse">#}
+{#            <ul class="nav navbar-nav navbar-right">#}
+{#                <li><a href="#">Dashboard</a></li>#}
+{#                <li><a href="#">Settings</a></li>#}
+{#                <li><a href="#">Profile</a></li>#}
+{#                <li><a href="#">Help</a></li>#}
+{#            </ul>#}
+{#            <form class="navbar-form navbar-right">#}
+{#                <input type="text" class="form-control" placeholder="Search...">#}
+{#            </form>#}
+{#        </div>#}
+{#    </div>#}
+{#</nav>#}
+{##}
+{#<div class="container-fluid">#}
+{#    <div class="row">#}
+{#        <div class="col-sm-3 col-md-2 sidebar">#}
+{#            <ul class="nav nav-sidebar">#}
+{#                <li><a href="#">所有用户 <span class="sr-only">(current)</span></a></li>#}
+{#                <li class="active"><a href="#">用户信息<span class="sr-only">(current)</span></a></li>#}
+{#                <li><a href="#">模型分析</a></li>#}
+{#                <li><a href="#">Export</a></li>#}
+{#            </ul>#}
+{#        </div>#}
+{#        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">#}
+{##}
+{#            <h2 class="sub-header">{{ person.name }}的记录</h2>#}
+{##}
+{#            <h2 class="sub-header"><span>{{ error }}</span></h2>#}
+{##}
+{#            <div>#}
+{#                <a href="/upload/{{ person.id }}/">上传ECG</a><br>#}
+{#            </div>#}
+{#            <h3 class="sub-header">ECG</h3>#}
+{#            <div class="table-responsive">#}
+{#                <table class="table table-striped">#}
+{#                    <thead>#}
+{#                    <tr>#}
+{#                        <th>序号</th>#}
+{#                        <th>id</th>#}
+{#                        <th>记录时间</th>#}
+{#                        <th>记录持续时长</th>#}
+{#                        <th>操作</th>#}
+{#                    </tr>#}
+{#                    </thead>#}
+{#                    {% for ecg_i in ecg %}#}
+{#                        <tbody>#}
+{#                        <td>{{ forloop.counter }}</td>#}
+{#                        <td>{{ ecg_i.id }}</td>#}
+{#                        <td>{{ ecg_i.record_begin_time }}</td>#}
+{#                        <td>{{ ecg_i.ecg_time }}</td>#}
+{#                        <td><a href="/ecg_model/{{ ecg_i.person_id }}/{{ ecg_i.id }}/">开始分析</a></td>#}
+{#                    {% endfor %}#}
+{#                    </tbody>#}
+{#                </table>#}
+{#            </div>#}
+{##}
+{#            <div>#}
+{#                <a href="/ecg_model/{{ person.id }}/{{ '' }}/">分析全部ECG记录</a><br>#}
+{#            </div>#}
+{##}
+{#        </div>#}
+{#    </div>#}
+{#</div>#}
+{##}
+{#<!-- Bootstrap core JavaScript#}
+{#================================================== -->#}
+{#<!-- Placed at the end of the document so the pages load faster -->#}
+{#<script src="/static/js/echarts.min.js"></script>#}
+{#<script src="/static/js/jquery-3.2.1/jquery-3.2.1.min.js"></script>#}
+{#<script src="/static/plugins/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>#}
+{##}
+{##}
+{#<div class="mpa-sc mpa-plugin-article-gatherer mpa-new mpa-rootsc" data-z="100" style="display: block;"#}
+{#     id="mpa-rootsc-article-gatherer"></div>#}
+{#<div class="mpa-sc mpa-plugin-image-gatherer mpa-new mpa-rootsc" data-z="100" style="display: block;"#}
+{#     id="mpa-rootsc-image-gatherer"></div>#}
+{#<div class="mpa-sc mpa-plugin-page-clipper mpa-new mpa-rootsc" data-z="100" style="display: block;"#}
+{#     id="mpa-rootsc-page-clipper"></div>#}
+{#<div class="mpa-sc mpa-plugin-text-gatherer mpa-new mpa-rootsc" data-z="100" style="display: block;"#}
+{#     id="mpa-rootsc-text-gatherer"></div>#}
+{#<div class="mpa-sc mpa-plugin-video-gatherer mpa-new mpa-rootsc" data-z="100" style="display: block;"#}
+{#     id="mpa-rootsc-video-gatherer"></div>#}
+{#<div class="mpa-sc mpa-plugin-side-function-panel mpa-new mpa-rootsc" data-z="110" style="display: block;"#}
+{#     id="mpa-rootsc-side-function-panel"></div>#}
+{#<div class="mpa-sc mpa-plugin-notifier mpa-new mpa-rootsc" data-z="120" style="display: block;"#}
+{#     id="mpa-rootsc-notifier"></div>#}
+{#<div class="mpa-sc mpa-plugin-notification-manager mpa-new mpa-rootsc" data-z="130" style="display: block;"#}
+{#     id="mpa-rootsc-notification-manager"></div>#}
+{#</body>#}
+
+{#<body>#}
+{##}
+{#<table>#}
+{#    <thead>#}
+{#    <tr>#}
+{#        <th>序号</th>#}
+{#        <th>用户</th>#}
+{#        <th>年龄</th>#}
+{#        <th>性别</th>#}
+{#    </tr>#}
+{#    </thead>#}
+{#    <tbody>#}
+{#    <tr>#}
+{#        <td>{{ person.id }}</td>#}
+{#        <td>{{ person.name }}</td>#}
+{#        <td>{{ person.age }}</td>#}
+{#        <td>{{ sex }}</td>#}
+{#    </tr>#}
+{#    </tbody>#}
+{#</table>#}
+{#<br>#}
+{##}
+{#<span>{{ error }}</span>#}
+{##}
+{#<div>#}
+{#    <a href="/upload/{{ person.id }}/">上传ECG</a><br>#}
+{#</div>#}
+{#<br>#}
+{##}
+{#<div>#}
+{#    <a href="/ecg_model/{{ person.id }}/{{ '' }}/">分析全部ECG记录</a><br>#}
+{#</div>#}
+{##}
+{#<table>#}
+{#    <thead>#}
+{#    <tr>#}
+{#        <th>序号</th>#}
+{#        <th>id</th>#}
+{#        <th>记录时间</th>#}
+{#        <th>记录持续时长</th>#}
+{#        <th>操作</th>#}
+{#    </tr>#}
+{#    </thead>#}
+{#    {% for ecg_i in ecg %}#}
+{#        <tbody>#}
+{#        <td>{{ forloop.counter }}</td>#}
+{#        <td>{{ ecg_i.id }}</td>#}
+{#        <td>{{ ecg_i.record_begin_time }}</td>#}
+{#        <td>{{ ecg_i.ecg_time }}</td>#}
+{#        <td><a href="/ecg_model/{{ ecg_i.person_id }}/{{ ecg_i.id }}/">开始分析</a></td>#}
+{#    {% endfor %}#}
+{#    </tbody>#}
+{#</table>#}
+{#<br>#}
+{##}
+{#</body>#}
+{#</html>#}

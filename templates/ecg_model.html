@@ -1,0 +1,901 @@
+{% extends 'login/base.html' %}
+{% load static %}
+{% block title %}
+    模型
+{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/index/dash.css' %}">
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                        aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">ECG心率分析系统</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="#">Dashboard</a></li>
+                    <li><a href="#">Settings</a></li>
+                    <li><a href="#">Profile</a></li>
+                    <li><a href="#">Help</a></li>
+                </ul>
+                <form class="navbar-form navbar-right">
+                    <input type="text" class="form-control" placeholder="Search...">
+                </form>
+            </div>
+        </div>
+    </nav>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-3 col-md-2 sidebar">
+                <ul class="nav nav-sidebar">
+                    <li><a href="">所有用户 </a></li>
+                    <li><a href="">用户信息</a></li>
+                    <li class="active"><a href="">模型分析<span class="sr-only">(current)</span></a></li>
+                    <li><a href="#">Export</a></li>
+                </ul>
+            </div>
+            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>记录的时间</th>
+                            <th>记录持续时长</th>
+                            <th>心率预测分类</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ ecg.record_begin_time }}</td>
+                            <td>{{ ecg.ecg_time }}</td>
+                            <td>{{ clss }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+                <div id="main" style="width:3840px;height: 1000px;"><h3 class="sub-header">{{ message }}</h3></div>
+                <button type="button" class="btn btn-success" id="prior">上一个</button>
+                <button type="button" class="btn btn-success" id="next">下一个</button>
+                <script>
+                    {#初始化 echarts 对象#}
+                    let mychart = echarts.init(document.getElementById('main'));
+                    let data_ = [];
+                    let data = [];
+                    let sample_hz = Number({{ hz }});
+                    let sample_point = sample_hz * 30;
+                    {#console.log('sample_point',sample_point);#}
+                    let classification = [];
+                    let index = 0;//记录当前读取的数据索引
+                    let series_data1 = [];
+                    let series_data2 = [];
+                    let series_data3 = [];
+
+                    {% for cl in cls_num %}
+                        classification.push(Number({{ cl }}));
+                    {% endfor %}
+                    {#console.log(classification);#}
+
+                    {% for d in data %}
+                        var data_i = [];
+                        {% for da in d.0 %}
+                            data_i.push({{ da }});
+                        {% endfor %}
+                        data_ = data_.concat(data_i);  //一维数组
+                        {#console.log(data_i);#}
+                    {% endfor %}
+                    {#console.log(data_.length,data_);#}
+                    // 将一维数组转换成sample_point*n的二维数组
+                    let n = classification.length;
+                    for (let i = 0; i < n; i++) {
+                        data[i] = [];
+                        for (let j = 0; j < sample_point; j++) {
+                            if (data_.length === 0) {
+                                data[i][j] = 0;
+                            } else {
+                                data[i][j] = data_.shift();
+                            }
+                        }
+                    }
+                    {#console.log(data);#}
+
+                    const next = document.getElementById("next");
+                    next.addEventListener('click', next_operation);
+                    const prior = document.getElementById("prior");
+                    prior.addEventListener('click', prior_operation);
+
+                    function deal_data(buffer_data) {
+                        series_data1.splice(0, series_data1.length);//清空数组
+                        series_data2.splice(0, series_data2.length);
+                        series_data3.splice(0, series_data3.length);
+                        series_data1 = [].concat(buffer_data.slice(0, 1280));
+                        series_data2 = [].concat(buffer_data.slice(1280, 2560));
+                        series_data3 = [].concat(buffer_data.slice(2560, 3840));
+                        console.log(series_data1);
+                        console.log(series_data2);
+                        console.log(series_data3);
+                    }
+
+                    function next_operation() {
+                        if (index === data.length - 1) {
+                            alert('已到最后');
+                        } else {
+                            let buffer_data = [].concat(data[index + 1]);
+                            index++;
+                            deal_data(buffer_data);
+                            console.log(classification[index]);
+                            if (classification[index] === 1) {
+                                mychart.setOption({
+                                    title: {
+                                        text: 'ECG',
+                                    },
+                                    grid: [
+                                        {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '66%', width: '30%', height: '30%'}
+                                    ],
+                                    color: 'green',
+                                    xAxis: [
+                                        {type: 'category', gridIndex: 0},
+                                        {type: 'category', gridIndex: 1},
+                                        {type: 'category', gridIndex: 2}
+                                    ],
+                                    yAxis: [
+                                        {type: 'value', gridIndex: 0},
+                                        {type: 'value', gridIndex: 1},
+                                        {type: 'value', gridIndex: 2}
+                                    ],
+                                    series: [
+                                        {
+                                            type: 'line',
+                                            data: series_data1,
+                                            xAxisIndex: 0,
+                                            yAxisIndex: 0
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data2,
+                                            xAxisIndex: 1,
+                                            yAxisIndex: 1
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data3,
+                                            xAxisIndex: 2,
+                                            yAxisIndex: 2
+                                        },
+                                    ],
+                                });
+                            } else if (classification[index] === 0) {
+                                mychart.setOption({
+                                    title: {
+                                        text: 'ECG',
+                                    },
+                                    grid: [
+                                        {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '66%', width: '30%', height: '30%'}
+                                    ],
+                                    color: 'red',
+                                    xAxis: [
+                                        {type: 'category', gridIndex: 0},
+                                        {type: 'category', gridIndex: 1},
+                                        {type: 'category', gridIndex: 2}
+                                    ],
+                                    yAxis: [
+                                        {type: 'value', gridIndex: 0},
+                                        {type: 'value', gridIndex: 1},
+                                        {type: 'value', gridIndex: 2}
+                                    ],
+                                    series: [
+                                        {
+                                            type: 'line',
+                                            data: series_data1,
+                                            xAxisIndex: 0,
+                                            yAxisIndex: 0
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data2,
+                                            xAxisIndex: 1,
+                                            yAxisIndex: 1
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data3,
+                                            xAxisIndex: 2,
+                                            yAxisIndex: 2
+                                        },
+                                    ],
+                                });
+                            } else if (classification[index] === 3) {
+                                mychart.setOption({
+                                    title: {
+                                        text: 'ECG',
+                                    },
+                                    grid: [
+                                        {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '66%', width: '30%', height: '30%'}
+                                    ],
+                                    color: 'yellow',
+                                    xAxis: [
+                                        {type: 'category', gridIndex: 0},
+                                        {type: 'category', gridIndex: 1},
+                                        {type: 'category', gridIndex: 2}
+                                    ],
+                                    yAxis: [
+                                        {type: 'value', gridIndex: 0},
+                                        {type: 'value', gridIndex: 1},
+                                        {type: 'value', gridIndex: 2}
+                                    ],
+                                    series: [
+                                        {
+                                            type: 'line',
+                                            data: series_data1,
+                                            xAxisIndex: 0,
+                                            yAxisIndex: 0
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data2,
+                                            xAxisIndex: 1,
+                                            yAxisIndex: 1
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data3,
+                                            xAxisIndex: 2,
+                                            yAxisIndex: 2
+                                        },
+                                    ]
+                                });
+                            } else {
+                                mychart.setOption({
+                                    title: {
+                                        text: 'ECG',
+                                    },
+                                    grid: [
+                                        {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '66%', width: '30%', height: '30%'}
+                                    ],
+                                    color: 'bule',
+                                    xAxis: [
+                                        {type: 'category', gridIndex: 0},
+                                        {type: 'category', gridIndex: 1},
+                                        {type: 'category', gridIndex: 2}
+                                    ],
+                                    yAxis: [
+                                        {type: 'value', gridIndex: 0},
+                                        {type: 'value', gridIndex: 1},
+                                        {type: 'value', gridIndex: 2}
+                                    ],
+                                    series: [
+                                        {
+                                            type: 'line',
+                                            data: series_data1,
+                                            xAxisIndex: 0,
+                                            yAxisIndex: 0
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data2,
+                                            xAxisIndex: 1,
+                                            yAxisIndex: 1
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data3,
+                                            xAxisIndex: 2,
+                                            yAxisIndex: 2
+                                        },
+                                    ]
+                                });
+                            }
+                        }
+                    }
+
+                    function prior_operation() {
+                        if (index === 0) {
+                            alert('已到开头');
+                        } else {
+                            let buffer_data = [].concat(data[index - 1]);
+                            index--;
+                            deal_data(buffer_data);
+                            console.log(classification[index]);
+                            if (classification[index] === 1) {
+                                mychart.setOption({
+                                    title: {
+                                        text: 'ECG',
+                                    },
+                                    grid: [
+                                        {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '66%', width: '30%', height: '30%'}
+                                    ],
+                                    color: 'green',
+                                    xAxis: [
+                                        {type: 'category', gridIndex: 0},
+                                        {type: 'category', gridIndex: 1},
+                                        {type: 'category', gridIndex: 2}
+                                    ],
+                                    yAxis: [
+                                        {type: 'value', gridIndex: 0},
+                                        {type: 'value', gridIndex: 1},
+                                        {type: 'value', gridIndex: 2}
+                                    ],
+                                    series: [
+                                        {
+                                            type: 'line',
+                                            data: series_data1,
+                                            xAxisIndex: 0,
+                                            yAxisIndex: 0
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data2,
+                                            xAxisIndex: 1,
+                                            yAxisIndex: 1
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data3,
+                                            xAxisIndex: 2,
+                                            yAxisIndex: 2
+                                        },
+                                    ],
+                                });
+                            } else if (classification[index] === 0) {
+                                mychart.setOption({
+                                    title: {
+                                        text: 'ECG',
+                                    },
+                                    grid: [
+                                        {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '66%', width: '30%', height: '30%'}
+                                    ],
+                                    color: 'red',
+                                    xAxis: [
+                                        {type: 'category', gridIndex: 0},
+                                        {type: 'category', gridIndex: 1},
+                                        {type: 'category', gridIndex: 2}
+                                    ],
+                                    yAxis: [
+                                        {type: 'value', gridIndex: 0},
+                                        {type: 'value', gridIndex: 1},
+                                        {type: 'value', gridIndex: 2}
+                                    ],
+                                    series: [
+                                        {
+                                            type: 'line',
+                                            data: series_data1,
+                                            xAxisIndex: 0,
+                                            yAxisIndex: 0
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data2,
+                                            xAxisIndex: 1,
+                                            yAxisIndex: 1
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data3,
+                                            xAxisIndex: 2,
+                                            yAxisIndex: 2
+                                        },
+                                    ],
+                                });
+                            } else if (classification[index] === 3) {
+                                mychart.setOption({
+                                    title: {
+                                        text: 'ECG',
+                                    },
+                                    grid: [
+                                        {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '66%', width: '30%', height: '30%'}
+                                    ],
+                                    color: 'yellow',
+                                    xAxis: [
+                                        {type: 'category', gridIndex: 0},
+                                        {type: 'category', gridIndex: 1},
+                                        {type: 'category', gridIndex: 2}
+                                    ],
+                                    yAxis: [
+                                        {type: 'value', gridIndex: 0},
+                                        {type: 'value', gridIndex: 1},
+                                        {type: 'value', gridIndex: 2}
+                                    ],
+                                    series: [
+                                        {
+                                            type: 'line',
+                                            data: series_data1,
+                                            xAxisIndex: 0,
+                                            yAxisIndex: 0
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data2,
+                                            xAxisIndex: 1,
+                                            yAxisIndex: 1
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data3,
+                                            xAxisIndex: 2,
+                                            yAxisIndex: 2
+                                        },
+                                    ]
+                                });
+                            } else {
+                                mychart.setOption({
+                                    title: {
+                                        text: 'ECG',
+                                    },
+                                    grid: [
+                                        {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                        {x: '7%', y: '66%', width: '30%', height: '30%'}
+                                    ],
+                                    color: 'bule',
+                                    xAxis: [
+                                        {type: 'category', gridIndex: 0},
+                                        {type: 'category', gridIndex: 1},
+                                        {type: 'category', gridIndex: 2}
+                                    ],
+                                    yAxis: [
+                                        {type: 'value', gridIndex: 0},
+                                        {type: 'value', gridIndex: 1},
+                                        {type: 'value', gridIndex: 2}
+                                    ],
+                                    series: [
+                                        {
+                                            type: 'line',
+                                            data: series_data1,
+                                            xAxisIndex: 0,
+                                            yAxisIndex: 0
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data2,
+                                            xAxisIndex: 1,
+                                            yAxisIndex: 1
+                                        },
+                                        {
+                                            type: 'line',
+                                            data: series_data3,
+                                            xAxisIndex: 2,
+                                            yAxisIndex: 2
+                                        },
+                                    ]
+                                });
+                            }
+                        }
+                    }
+
+                    // 第一个画布
+                    let buffer_data = [].concat(data[index]);
+                    {#console.log(buffer_data.length, buffer_data);#}
+                    deal_data(buffer_data);
+                    console.log(classification[index]);
+                    if (classification[index] === 1) {
+                        mychart.setOption({
+                            title: {
+                                text: 'ECG',
+                            },
+                            legend: {},
+                            grid: [
+                                {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                {x: '7%', y: '66%', width: '30%', height: '30%'}
+                            ],
+                            color: 'green',
+                            xAxis: [
+                                {type: 'category', gridIndex: 0},
+                                {type: 'category', gridIndex: 1},
+                                {type: 'category', gridIndex: 2}
+                            ],
+                            yAxis: [
+                                {type: 'value', gridIndex: 0},
+                                {type: 'value', gridIndex: 1},
+                                {type: 'value', gridIndex: 2}
+                            ],
+                            series: [
+                                {
+                                    type: 'line',
+                                    data: series_data1,
+                                    xAxisIndex: 0,
+                                    yAxisIndex: 0
+                                },
+                                {
+                                    type: 'line',
+                                    data: series_data2,
+                                    xAxisIndex: 1,
+                                    yAxisIndex: 1
+                                },
+                                {
+                                    type: 'line',
+                                    data: series_data3,
+                                    xAxisIndex: 2,
+                                    yAxisIndex: 2
+                                },
+                            ],
+                        });
+                    } else if (classification[index] === 0) {
+                        mychart.setOption({
+                            title: {
+                                text: 'ECG',
+                            },
+                            grid: [
+                                {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                {x: '7%', y: '66%', width: '30%', height: '30%'}
+                            ],
+                            color: 'red',
+                            xAxis: [
+                                {type: 'category', gridIndex: 0},
+                                {type: 'category', gridIndex: 1},
+                                {type: 'category', gridIndex: 2}
+                            ],
+                            yAxis: [
+                                {type: 'value', gridIndex: 0},
+                                {type: 'value', gridIndex: 1},
+                                {type: 'value', gridIndex: 2}
+                            ],
+                            series: [
+                                {
+                                    type: 'line',
+                                    data: series_data1,
+                                    xAxisIndex: 0,
+                                    yAxisIndex: 0
+                                },
+                                {
+                                    type: 'line',
+                                    data: series_data2,
+                                    xAxisIndex: 1,
+                                    yAxisIndex: 1
+                                },
+                                {
+                                    type: 'line',
+                                    data: series_data3,
+                                    xAxisIndex: 2,
+                                    yAxisIndex: 2
+                                },
+                            ],
+                        });
+                    } else if (classification[index] === 3) {
+                        mychart.setOption({
+                            title: {
+                                text: 'ECG',
+                            },
+                            grid: [
+                                {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                {x: '7%', y: '66%', width: '30%', height: '30%'}
+                            ],
+                            color: 'yellow',
+                            xAxis: [
+                                {type: 'category', gridIndex: 0},
+                                {type: 'category', gridIndex: 1},
+                                {type: 'category', gridIndex: 2}
+                            ],
+                            yAxis: [
+                                {type: 'value', gridIndex: 0},
+                                {type: 'value', gridIndex: 1},
+                                {type: 'value', gridIndex: 2}
+                            ],
+                            series: [
+                                {
+                                    type: 'line',
+                                    data: series_data1,
+                                    xAxisIndex: 0,
+                                    yAxisIndex: 0
+                                },
+                                {
+                                    type: 'line',
+                                    data: series_data2,
+                                    xAxisIndex: 1,
+                                    yAxisIndex: 1
+                                },
+                                {
+                                    type: 'line',
+                                    data: series_data3,
+                                    xAxisIndex: 2,
+                                    yAxisIndex: 2
+                                },
+                            ]
+                        });
+                    } else {
+                        mychart.setOption({
+                            title: {
+                                text: 'ECG',
+                            },
+                            grid: [
+                                {x: '7%', y: '0%', width: '30%', height: '30%'},
+                                {x: '7%', y: '33%', width: '30%', height: '30%'},
+                                {x: '7%', y: '66%', width: '30%', height: '30%'}
+                            ],
+                            color: 'bule',
+                            xAxis: [
+                                {type: 'category', gridIndex: 0},
+                                {type: 'category', gridIndex: 1},
+                                {type: 'category', gridIndex: 2}
+                            ],
+                            yAxis: [
+                                {type: 'value', gridIndex: 0},
+                                {type: 'value', gridIndex: 1},
+                                {type: 'value', gridIndex: 2}
+                            ],
+                            series: [
+                                {
+                                    type: 'line',
+                                    data: series_data1,
+                                    xAxisIndex: 0,
+                                    yAxisIndex: 0
+                                },
+                                {
+                                    type: 'line',
+                                    data: series_data2,
+                                    xAxisIndex: 1,
+                                    yAxisIndex: 1
+                                },
+                                {
+                                    type: 'line',
+                                    data: series_data3,
+                                    xAxisIndex: 2,
+                                    yAxisIndex: 2
+                                },
+                            ]
+                        });
+                    }
+                </script>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+
+{#<!DOCTYPE html>#}
+{#<html lang="en">#}
+{#<head>#}
+{##}
+{#    <meta charset="UTF-8">#}
+{#    <meta name="viewport" content="width=device-width, initial-scale=1">#}
+{#    <title>训练模型</title>#}
+{##}
+{#    <link rel="stylesheet" href="/static/plugins/bootstrap-3.3.7-dist/css/bootstrap.min.css">#}
+{#    <link rel="stylesheet" href="/static/css/index/dash.css">#}
+{#    <script src="/static/js/echarts.min.js"></script>#}
+{##}
+{#</head>#}
+{#<body>#}
+{##}
+{#<div class="container-fluid">#}
+{#    <div class="row">#}
+{#        <div class="col-sm-3 col-md-2 sidebar">#}
+{#            <ul class="nav nav-sidebar">#}
+{#                <li><a href="">所有用户 </a></li>#}
+{#                <li><a href="">用户信息</a></li>#}
+{#                <li class="active"><a href="">模型分析<span class="sr-only">(current)</span></a></li>#}
+{#                <li><a href="#">Export</a></li>#}
+{#            </ul>#}
+{#        </div>#}
+{#        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">#}
+{##}
+{#            <h3 class="sub-header">{{ message }}</h3>#}
+{##}
+{#            <div class="table-responsive">#}
+{#                <table class="table table-striped">#}
+{#                    <thead>#}
+{#                    <tr>#}
+{#                        <th>序号</th>#}
+{#                        <th>记录开始时间</th>#}
+{#                        <th>记录持续时长</th>#}
+{#                <th>心率预测分类</th>#}
+{#                    </tr>#}
+{#                    </thead>#}
+{#                    {% for ecg_i in ecg %}#}
+{##}
+{#                        <tbody>#}
+{#                        <td>{{ forloop.counter }}</td>#}
+{#                        <td>{{ ecg_i.record_begin_time }}</td>#}
+{#                        <td>{{ ecg_i.ecg_time }}</td>#}
+{##}
+{#                    {% endfor %}#}
+{#                    </tbody>#}
+{#                </table>#}
+{#            </div>#}
+{##}
+{#            <div class="table-responsive">#}
+{#                <h3 class="sub-header">模型预测结果</h3>#}
+{#                <table class="table table-striped">#}
+{#                    <thead>#}
+{#                    <tr>#}
+{#                        <th>序号</th>#}
+{#                        <th>分类</th>#}
+{#                    </tr>#}
+{#                    </thead>#}
+{#                    {% for cls_i in clss %}#}
+{#                        <tbody>#}
+{#                        <td>{{ forloop.counter }}</td>#}
+{#                        <td>{{ cls_i.0 }}</td>#}
+{#                    {% endfor %}#}
+{#                    </tbody>#}
+{#                </table>#}
+{#            </div>#}
+{##}
+{#            <!-- 为ECharts准备一个具备大小（宽高）的Dom -->#}
+{#            <div id="main" style="width:100%;height:600px;"></div>#}
+{#            <button type="button" class="btn btn-success" id="prior">上一个</button>#}
+{#            <button type="button" class="btn btn-success" id="next">下一个</button>#}
+{#            <script>#}
+{#初始化 echarts 对象#}
+{#                var mychart = echarts.init(document.getElementById('main'));#}
+{#首先，声明两个 javascript 的数组#}
+{#                var series_data = [];#}
+{#                var xAxis_data = [];#}
+{#                var data =[];#}
+{#                var pre_data = [];#}
+{##}
+{#                {% for d in data %}#}
+{#                    data.push({{ d }});#}
+{#                {% endfor %}#}
+{##}
+{#                for (var i = 0; i < 1000; i++) {#}
+{#                    var bff = data.shift();#}
+{#                    series_data.push(bff);#}
+{#                }#}
+{##}
+{#                function next_data() {#}
+{#                    if (data.length === 0){#}
+{#                        alert('已到最后');#}
+{#                    }#}
+{#                    else{#}
+{#                        for (var j = 0; j < 1000; j++) {#}
+{#                        var bffer1 = data.shift();#}
+{#                        series_data.push(bffer1);#}
+{#                        var bffer2 = series_data.shift();#}
+{#                        pre_data.push(bffer2)#}
+{#                        }#}
+{#                    }#}
+{#                }#}
+{##}
+{#                function prior_data() {#}
+{#                    if (pre_data.length === 0) {#}
+{#                        alert('已到开头');#}
+{#                    }#}
+{#                    else {#}
+{#                        for (var j = 0; j < 1000; j++) {#}
+{#                            var bffer1 = series_data.pop();#}
+{#                            data.unshift(bffer1);#}
+{#                            var buffer2 = pre_data.pop();#}
+{#                            series_data.unshift(buffer2);#}
+{#                        }#}
+{#                    }#}
+{#                }#}
+{##}
+{#                next = document.getElementById("next");#}
+{#                next.addEventListener('click', next_operation);#}
+{#                prior = document.getElementById("prior");#}
+{#                prior.addEventListener('click', prior_operation);#}
+{##}
+{#可视化展示选项#}
+{#                var option = {#}
+{#                    title:{#}
+{#                        text: 'ECG',#}
+{#                    },#}
+{#                    xAxis: {#}
+{#                        type: 'category',#}
+{#data: xAxis_data#}
+{#                    },#}
+{#                    yAxis: {#}
+{#                        type: 'value',#}
+{#                    },#}
+{#                    series: [{#}
+{#                        data: series_data,#}
+{#                        type: 'line',#}
+{#                    }]#}
+{#                };#}
+{#将 echarts对象与展示选项结合起来#}
+{#                function next_operation(){#}
+{#                    next_data();#}
+{#                    mychart.setOption(option);#}
+{#                }#}
+{#                function prior_operation(){#}
+{#                    prior_data();#}
+{#                    mychart.setOption(option);#}
+{#                }#}
+{#                mychart.setOption(option);#}
+{#            </script>#}
+{##}
+{#        </div>#}
+{#    </div>#}
+{#</div>#}
+{#<!-- Bootstrap core JavaScript#}
+{#================================================== -->#}
+{#<!-- Placed at the end of the document so the pages load faster -->#}
+{##}
+{#<script src="/static/js/jquery-3.2.1/jquery-3.2.1.min.js"></script>#}
+{#<script src="/static/plugins/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>#}
+{##}
+{##}
+{#<div class="mpa-sc mpa-plugin-article-gatherer mpa-new mpa-rootsc" data-z="100" style="display: block;"#}
+{#     id="mpa-rootsc-article-gatherer"></div>#}
+{#<div class="mpa-sc mpa-plugin-image-gatherer mpa-new mpa-rootsc" data-z="100" style="display: block;"#}
+{#     id="mpa-rootsc-image-gatherer"></div>#}
+{#<div class="mpa-sc mpa-plugin-page-clipper mpa-new mpa-rootsc" data-z="100" style="display: block;"#}
+{#     id="mpa-rootsc-page-clipper"></div>#}
+{#<div class="mpa-sc mpa-plugin-text-gatherer mpa-new mpa-rootsc" data-z="100" style="display: block;"#}
+{#     id="mpa-rootsc-text-gatherer"></div>#}
+{#<div class="mpa-sc mpa-plugin-video-gatherer mpa-new mpa-rootsc" data-z="100" style="display: block;"#}
+{#     id="mpa-rootsc-video-gatherer"></div>#}
+{#<div class="mpa-sc mpa-plugin-side-function-panel mpa-new mpa-rootsc" data-z="110" style="display: block;"#}
+{#     id="mpa-rootsc-side-function-panel"></div>#}
+{#<div class="mpa-sc mpa-plugin-notifier mpa-new mpa-rootsc" data-z="120" style="display: block;"#}
+{#     id="mpa-rootsc-notifier"></div>#}
+{#<div class="mpa-sc mpa-plugin-notification-manager mpa-new mpa-rootsc" data-z="130" style="display: block;"#}
+{#     id="mpa-rootsc-notification-manager"></div>#}
+{#</body>#}
+{#<body>#}
+{#<table>#}
+{#    <thead>#}
+{#    <tr>#}
+{#        <th>序号</th>#}
+{#        <th>记录开始时间</th>#}
+{#        <th>记录持续时长</th>#}
+{##}
+{#                <th>心率预测分类</th>#}
+{#    </tr>#}
+{#    </thead>#}
+{#    {% for ecg_i in ecg %}#}
+{##}
+{#        <tbody>#}
+{#        <td>{{ forloop.counter }}</td>#}
+{#        <td>{{ ecg_i.record_begin_time }}</td>#}
+{#        <td>{{ ecg_i.ecg_time }}</td>#}
+{#        </tbody>#}
+{##}
+{#    {% endfor %}#}
+{#</table>#}
+{#<br>#}
+{##}
+{#{{ message }}#}
+{#<br>#}
+{##}
+{#<br>#}
+{#预测的分类#}
+{#<table>#}
+{#    <thead>#}
+{#    <tr>#}
+{#        <th>序号</th>#}
+{#        <th>分类</th>#}
+{#        <th>心电数据存储的路径</th>#}
+{##}
+{#        <th>心率预测分类</th>#}
+{#    </tr>#}
+{#    </thead>#}
+{#    {% for pre_i in predicts %}#}
+{##}
+{#        <tbody>#}
+{#        <td>{{ forloop.counter }}</td>#}
+{#        <td>{{ pre_i }}</td>#}
+{#        </tbody>#}
+{##}
+{#    {% endfor %}#}
+{#</table>#}
+{#</body>#}
+{#</html>#}
